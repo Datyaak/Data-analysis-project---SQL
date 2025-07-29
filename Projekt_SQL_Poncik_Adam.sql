@@ -17,7 +17,9 @@ FROM (
 	JOIN czechia_price_category cpc ON cpc.code = c.category_code
 	GROUP BY grocery_name, "year", c.category_code) g
 JOIN (
-	SELECT avg(cp.value) AS average_salary, cp.payroll_year, cpib."name" AS branch
+	SELECT avg(cp.value) AS average_salary,
+		cp.payroll_year,
+		cpib."name" AS branch
 	FROM czechia_payroll cp
 	JOIN czechia_payroll_industry_branch cpib ON cp.industry_branch_code = cpib.code
 	WHERE cp.value_type_code = 5958
@@ -66,15 +68,14 @@ SELECT t.grocery_name,
 	round(round(avg(t.average_salary), 0) / round(t.average_price::numeric, 2), 2) AS purchase_power
 FROM t_adam_poncik_project_sql_primary_final t
 JOIN (
-    SELECT 
-      grocery_name, 
-      MIN(year) AS min_year, 
-      MAX(year) AS max_year
-    FROM t_adam_poncik_project_SQL_primary_final
-    GROUP BY grocery_name
-  ) j 
-    ON j.grocery_name = t.grocery_name
-   AND t.year IN (j.min_year, j.max_year)
+	SELECT grocery_name,
+		MIN(year) AS min_year,
+		MAX(year) AS max_year
+	FROM t_adam_poncik_project_SQL_primary_final
+	GROUP BY grocery_name
+	) j 
+ON j.grocery_name = t.grocery_name
+AND t.year IN (j.min_year, j.max_year)
 WHERE t.category_code IN (111301, 114201)
 GROUP BY t."year", t.grocery_name, t.average_price
 ORDER BY t.grocery_name, t."year";
@@ -83,21 +84,19 @@ ORDER BY t.grocery_name, t."year";
 -- VIEW pro otázku 3
 CREATE VIEW v_adam_poncik_project_SQL_primary_final_3 AS 
 WITH cte_grocery_timeframe AS (
-	SELECT DISTINCT
-    t.grocery_name,
-    t.year,
-    t.average_price
-  FROM t_adam_poncik_project_SQL_primary_final t
-  JOIN (
-    SELECT 
-      grocery_name, 
-      MIN(year) AS min_year, 
-      MAX(year) AS max_year
-    FROM t_adam_poncik_project_SQL_primary_final
-    GROUP BY grocery_name
+	SELECT DISTINCT t.grocery_name,
+		t.year,
+		t.average_price
+FROM t_adam_poncik_project_SQL_primary_final t
+JOIN (
+	SELECT grocery_name,
+		MIN(year) AS min_year,
+		MAX(year) AS max_year
+	FROM t_adam_poncik_project_SQL_primary_final
+	GROUP BY grocery_name
   ) j 
-    ON j.grocery_name = t.grocery_name
-   AND t.year IN (j.min_year, j.max_year)
+ON j.grocery_name = t.grocery_name
+AND t.year IN (j.min_year, j.max_year)
 ),
 cte_price_change AS (
 	SELECT *,
@@ -106,7 +105,8 @@ cte_price_change AS (
 	FROM cte_grocery_timeframe
 	ORDER BY cte_grocery_timeframe.grocery_name
 )
-SELECT grocery_name, round(pct_price_change::numeric, 2) AS pct_price_change
+SELECT grocery_name,
+	round(pct_price_change::numeric, 2) AS pct_price_change
 FROM cte_price_change
 WHERE pct_price_change IS NOT NULL
 ORDER BY cte_price_change.pct_price_change ASC
@@ -129,9 +129,11 @@ cte_pct_changes AS (
 		SELECT *,
 		100 * ((average_price / previous_year_price) - 1) AS pct_price_change,
 		100 * ((average_salary / previous_year_salary) -1) AS pct_salary_change
-	FROM cte_agregated_data
-	)
-SELECT "year", pct_price_change, pct_salary_change,
+		FROM cte_agregated_data
+)
+SELECT "year",
+	pct_price_change,
+	pct_salary_change,
 	round(pct_salary_change::numeric - pct_price_change::numeric, 2) AS pct_growth_diff
 FROM cte_pct_changes
 WHERE pct_price_change IS NOT NULL AND pct_salary_change IS NOT NULL
@@ -150,15 +152,14 @@ WITH cte_agregated_data AS (
 	GROUP BY t."year"
 	ORDER BY t."year" ASC),
 cte_pct_changes AS (
-		SELECT *,
+	SELECT *,
 		100 * ((average_price / previous_year_price) - 1) AS pct_price_change,
 		100 * ((average_salary / previous_year_salary) -1) AS pct_salary_change
-	FROM cte_agregated_data 
-	),
+	FROM cte_agregated_data),
 cte_gdp_change AS (
 	SELECT country,
-	"year",
-	((gdp / previous_gdp) - 1) * 100 AS gdp_change
+		"year",
+		((gdp / previous_gdp) - 1) * 100 AS gdp_change
 	FROM (
 	SELECT *,
 		lag(t2.gdp) OVER (PARTITION BY t2.country ORDER BY t2."year") AS previous_gdp
